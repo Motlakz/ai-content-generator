@@ -10,6 +10,8 @@ import { Copy, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { templates } from '@/app/(data)/Templates'
+import { useSubscription } from '@/app/(context)/SubscriptionContext'
+import { addWeeks, addMonths, addYears, isAfter } from 'date-fns'
 
 export interface HistoryItem {
     id: number
@@ -25,6 +27,7 @@ export interface HistoryItem {
 const HistoryTable = () => {
     const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
     const { user } = useUser()
+    const { subscriptionLevel } = useSubscription()
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -34,26 +37,50 @@ const HistoryTable = () => {
                     .where(eq(AIOutput.createdBy, user.primaryEmailAddress.emailAddress))
                     .orderBy(desc(AIOutput.createdAt))
 
-                const formattedResults = results.map(item => {
-                    const template = templates.find(t => t.slug === item.templateSlug)
-                    return {
-                        id: item.id,
-                        templateSlug: item.templateSlug,
-                        aiResponse: item.aiResponse || '',
-                        createdAt: new Date(item.createdAt || '').toLocaleString(),
-                        wordCount: item.aiResponse ? item.aiResponse.split(' ').length : 0,
-                        templateName: template?.name || item.templateSlug,
-                        templateIcon: template?.icon || '',
-                        formData: item.formData || '',
-                    }
-                })
+                const currentDate = new Date()
+                let limitDate: Date | null = null
+
+                switch (subscriptionLevel) {
+                    case 'free':
+                        limitDate = addWeeks(currentDate, -1)
+                        break
+                    case 'starter':
+                        limitDate = addMonths(currentDate, -1)
+                        break
+                    case 'pro':
+                        limitDate = addYears(currentDate, -1)
+                        break
+                    case 'mastermind':
+                        limitDate = null
+                        break
+                }
+
+                const formattedResults = results
+                    .filter(item => {
+                        if (!limitDate) return true // No limit for mastermind
+                        const itemDate = new Date(item.createdAt || '')
+                        return isAfter(itemDate, limitDate)
+                    })
+                    .map(item => {
+                        const template = templates.find(t => t.slug === item.templateSlug)
+                        return {
+                            id: item.id,
+                            templateSlug: item.templateSlug,
+                            aiResponse: item.aiResponse || '',
+                            createdAt: new Date(item.createdAt || '').toLocaleString(),
+                            wordCount: item.aiResponse ? item.aiResponse.split(' ').length : 0,
+                            templateName: template?.name || item.templateSlug,
+                            templateIcon: template?.icon || '',
+                            formData: item.formData || '',
+                        }
+                    })
 
                 setHistoryItems(formattedResults)
             }
         }
 
         fetchHistory()
-    }, [user])
+    }, [user, subscriptionLevel])
 
     const copyContent = (item: HistoryItem) => {
         const content = `Template: ${item.templateName}\nDate: ${item.createdAt}\nWord Count: ${item.wordCount}\n\nContent:\n${item.aiResponse}`
@@ -64,9 +91,21 @@ const HistoryTable = () => {
 
     return (
         <div className="overflow-x-auto border py-8 px-4 rounded-lg bg-white">
-            <article className="text-center">
+            <article className="text-center mb-8">
                 <h1 className="text-2xl font-bold">Content History</h1>
                 <p className="my-2">Search your previously generated content history.</p>
+                {subscriptionLevel === 'free' && (
+                    <p className="text-gray-500">View your content history for the last week. <span className="text-blue-500">Upgrade to view the rest!</span></p>
+                )}
+                {subscriptionLevel === 'starter' && (
+                    <p className="text-blue-500">You can view your content history for the last month.</p>
+                )}
+                {subscriptionLevel === 'pro' && (
+                    <p className="text-green-500">You can view your content history for the last year.</p>
+                )}
+                {subscriptionLevel === 'mastermind' && (
+                    <p className="text-purple-500">You have unlimited access to your content history.</p>
+                )}
             </article>
 
             <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
@@ -106,7 +145,7 @@ const HistoryTable = () => {
                                         onClick={() => copyContent(item)}
                                         size="sm"
                                         variant="outline"
-                                        className="flex items-center hover:bg-pink-200 hover:text-pink-800"
+                                        className="flex items-center hover:bg-pink-100 hover:text-pink-800"
                                     >
                                         <Copy className="w-4 h-4 mr-1" /> Copy
                                     </Button>
@@ -114,7 +153,7 @@ const HistoryTable = () => {
                                         <Button
                                             size="sm"
                                             variant="outline"
-                                            className="flex items-center hover:bg-indigo-200 hover:text-indigo-800"
+                                            className="flex items-center hover:bg-indigo-100 hover:text-indigo-800"
                                         >
                                             <ExternalLink className="w-4 h-4 mr-1" /> View
                                         </Button>
