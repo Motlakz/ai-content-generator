@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { HiOutlineCurrencyDollar, HiOutlineTemplate, HiOutlineClock, HiOutlineSparkles, HiOutlineMail, HiOutlineBell } from 'react-icons/hi'
 import { InfinityIcon } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { FaCheckCircle, FaRobot } from 'react-icons/fa'
+import { FaRobot } from 'react-icons/fa'
 
 const plans = [
     {
@@ -15,7 +15,7 @@ const plans = [
         price: 'Free',
         features: [
             { text: '10 000 credits/month', icon: HiOutlineCurrencyDollar },
-            { text: 'Access to 10 templates', icon: HiOutlineTemplate },
+            { text: 'Basic support', icon: HiOutlineMail },
             { text: '1 Week of History', icon: HiOutlineClock },
         ],
         color: 'bg-white hover:bg-gray-50',
@@ -27,12 +27,10 @@ const plans = [
         price: '$4.99',
         features: [
             { text: '25 000 credits/month', icon: HiOutlineCurrencyDollar },
-            { text: '5 AI generations per day', icon: HiOutlineSparkles },
-            { text: 'Access to 20 templates', icon: HiOutlineTemplate },
             { text: 'Email support', icon: HiOutlineMail },
             { text: '1 Month of History', icon: HiOutlineClock },
         ],
-        color: 'bg-gradient-to-br from-indigo-100 to-indigo-200',
+        color: 'bg-gradient-to-br from-indigo-100 to-indigo-200 hover:from-indigo-50 hover:to-indigo-300',
         buttonColor: 'bg-indigo-500 hover:bg-indigo-600',
         level: 'starter',
     },
@@ -41,8 +39,6 @@ const plans = [
         price: '$12.99',
         features: [
             { text: '50 000 credits/month', icon: HiOutlineCurrencyDollar },
-            { text: '20 AI generations per day', icon: HiOutlineSparkles },
-            { text: 'Access to all templates', icon: HiOutlineTemplate },
             { text: 'Priority email support', icon: HiOutlineMail },
             { text: 'Post reminders', icon: HiOutlineBell },
             { text: '1 Year of History', icon: HiOutlineClock },
@@ -57,8 +53,6 @@ const plans = [
         price: '$19.99',
         features: [
             { text: 'Unlimited credits/month', icon: HiOutlineCurrencyDollar },
-            { text: 'Unlimited AI generations', icon: HiOutlineSparkles },
-            { text: 'Access to all templates', icon: HiOutlineTemplate },
             { text: 'Custom templates', icon: HiOutlineTemplate },
             { text: '24/7 email support', icon: HiOutlineMail },
             { text: 'Post reminders', icon: HiOutlineBell },
@@ -77,7 +71,7 @@ const BillingPage = () => {
     const handleUpgrade = (level: string) => {
         // Here you would integrate with your payment gateway
         // For now, we'll just update the subscription level
-        
+
         // @ts-ignore
         setSubscriptionLevel(level)
         alert(`Upgraded to ${level} plan!`)
@@ -142,7 +136,6 @@ const BillingPage = () => {
                         isPro={plan.popular}
                         onButtonClick={() => handleUpgrade(plan.level)}
                         loading={false}
-                        isPending={false}
                         hasActiveMembership={subscriptionLevel === plan.level}
                     />
                 ))}
@@ -162,7 +155,6 @@ interface PricingCardProps {
     isPro?: boolean;
     onButtonClick: () => void;
     loading: boolean;
-    isPending: boolean;
     hasActiveMembership: boolean;
 }
 
@@ -177,7 +169,6 @@ const PricingCard: React.FC<PricingCardProps> = ({
     isPro = false, 
     onButtonClick,
     loading,
-    isPending,
     hasActiveMembership 
 }) => (
     <motion.div 
@@ -200,9 +191,9 @@ const PricingCard: React.FC<PricingCardProps> = ({
         <Button 
             onClick={onButtonClick}
             className={`mt-8 w-full py-3 rounded-md text-lg font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${buttonColor}`}
-            disabled={loading || isPending || hasActiveMembership}
+            disabled={loading || hasActiveMembership}
         >
-            {loading || isPending ? 'Processing...' : buttonText}
+            {loading ? 'Processing...' : buttonText}
         </Button>
     </motion.div>
 );

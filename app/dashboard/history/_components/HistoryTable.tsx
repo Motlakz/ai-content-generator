@@ -1,17 +1,13 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import { db } from '@/utils/dbSetup'
-import { AIOutput } from '@/utils/schema'
-import { desc, eq } from 'drizzle-orm'
 import { useUser } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Copy, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { templates } from '@/app/(data)/Templates'
 import { useSubscription } from '@/app/(context)/SubscriptionContext'
-import { addWeeks, addMonths, addYears, isAfter } from 'date-fns'
+import axios from "axios"
 
 export interface HistoryItem {
     id: number
@@ -31,51 +27,13 @@ const HistoryTable = () => {
 
     useEffect(() => {
         const fetchHistory = async () => {
-            if (user?.primaryEmailAddress?.emailAddress) {
-                const results = await db.select()
-                    .from(AIOutput)
-                    .where(eq(AIOutput.createdBy, user.primaryEmailAddress.emailAddress))
-                    .orderBy(desc(AIOutput.createdAt))
-
-                const currentDate = new Date()
-                let limitDate: Date | null = null
-
-                switch (subscriptionLevel) {
-                    case 'free':
-                        limitDate = addWeeks(currentDate, -1)
-                        break
-                    case 'starter':
-                        limitDate = addMonths(currentDate, -1)
-                        break
-                    case 'pro':
-                        limitDate = addYears(currentDate, -1)
-                        break
-                    case 'mastermind':
-                        limitDate = null
-                        break
+            if (user) {
+                try {
+                    const response = await axios.get(`/api/get-history?subscriptionLevel=${subscriptionLevel}`);
+                    setHistoryItems(response.data);
+                } catch (error) {
+                    console.error('Failed to fetch history:', error);
                 }
-
-                const formattedResults = results
-                    .filter(item => {
-                        if (!limitDate) return true // No limit for mastermind
-                        const itemDate = new Date(item.createdAt || '')
-                        return isAfter(itemDate, limitDate)
-                    })
-                    .map(item => {
-                        const template = templates.find(t => t.slug === item.templateSlug)
-                        return {
-                            id: item.id,
-                            templateSlug: item.templateSlug,
-                            aiResponse: item.aiResponse || '',
-                            createdAt: new Date(item.createdAt || '').toLocaleString(),
-                            wordCount: item.aiResponse ? item.aiResponse.split(' ').length : 0,
-                            templateName: template?.name || item.templateSlug,
-                            templateIcon: template?.icon || '',
-                            formData: item.formData || '',
-                        }
-                    })
-
-                setHistoryItems(formattedResults)
             }
         }
 
@@ -95,16 +53,16 @@ const HistoryTable = () => {
                 <h1 className="text-2xl font-bold">Content History</h1>
                 <p className="my-2">Search your previously generated content history.</p>
                 {subscriptionLevel === 'free' && (
-                    <p className="text-gray-500">View your content history for the last week. <span className="text-blue-500">Upgrade to view the rest!</span></p>
+                    <p className="text-gray-500">Your content history for the last week. <span className="text-blue-500">Upgrade to view the rest!</span></p>
                 )}
                 {subscriptionLevel === 'starter' && (
-                    <p className="text-blue-500">You can view your content history for the last month.</p>
+                    <p className="text-blue-500">Your content history for the last month.</p>
                 )}
                 {subscriptionLevel === 'pro' && (
-                    <p className="text-green-500">You can view your content history for the last year.</p>
+                    <p className="text-green-500">Your content history for the last year.</p>
                 )}
                 {subscriptionLevel === 'mastermind' && (
-                    <p className="text-purple-500">You have unlimited access to your content history.</p>
+                    <p className="text-purple-500">View your content history.</p>
                 )}
             </article>
 

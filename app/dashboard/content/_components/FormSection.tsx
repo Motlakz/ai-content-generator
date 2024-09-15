@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { LoaderCircleIcon } from 'lucide-react'
+import { LoaderIcon } from 'lucide-react'
 
 interface TemplateProps {
     selectedTemplate?: TEMPLATE;
@@ -64,8 +64,8 @@ const FormSection = ({ selectedTemplate, userFormInput, loading, initialFormData
                         }
                     </div>
                 ))}
-                <Button type="submit" className="p-3 hover:bg-blue-600 bg-blue-500 w-full" disabled={loading}>
-                    {loading && <LoaderCircleIcon className="animate-spin" />}
+                <Button type="submit" className="p-3 hover:bg-blue-600 bg-blue-500 w-full flex items-center gap-2" disabled={loading}>
+                    {loading && <LoaderIcon className="animate-spin text-blue-400" />}
                     Generate Content
                 </Button>
             </form>

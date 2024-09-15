@@ -1,11 +1,16 @@
 "use client"
+
 import { useEffect } from "react";
-import { Home, SettingsIcon, TimerIcon, Wallet2 } from "lucide-react"
+import { Home, SettingsIcon, TimerIcon, Wallet2, X } from "lucide-react"
 import { usePathname } from "next/navigation";
 import UsageTrack from "./UsageTrack";
 import Link from 'next/link';
+import { Button } from "@/components/ui/button";
 
-const Sidebar = () => {
+interface SidebarProps {
+    onClose: () => void;
+}
+const Sidebar = ({ onClose }: SidebarProps) => {
     const MenuList = [
         {
             name: "Dashboard",
@@ -32,13 +37,16 @@ const Sidebar = () => {
     const path = usePathname();
     useEffect(() => {
         console.log(path);
-    }, [])
+    })
     
     return (
         <div>
             <aside className="h-screen relative p-4 shadow-sm border bg-white">
-                <div className="logo flex justify-center border-b-4 border-b-indigo-300">
+                <div className="logo flex justify-between items-center border-b-4 border-b-indigo-300">
                     <p className="text-pink-400 pt-3 pb-4">CONTENT <span className="text-blue-400">BLOX</span></p>
+                    <Button variant="ghost" onClick={onClose} className="md:hidden bg-blue-200 hover:bg-blue-100 rounded-md">
+                        <X />
+                    </Button>
                 </div>
                 <ul className="mt-12">
                     {MenuList.map((menu, index) => (

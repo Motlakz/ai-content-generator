@@ -1,12 +1,11 @@
 import { TotalUsageContext } from '@/app/(context)/TotalUsageContext'
 import { useSubscription } from '@/app/(context)/SubscriptionContext'
 import { Button } from '@/components/ui/button'
-import { db } from '@/utils/dbSetup'
-import { AIOutput } from '@/utils/schema'
 import { useUser } from '@clerk/nextjs'
-import { eq } from 'drizzle-orm'
 import Link from 'next/link'
-import React, { useEffect, useState, useCallback, useContext } from 'react'
+import React, { useEffect, useState, useContext } from 'react'
+import axios from 'axios'
+import { LoaderIcon } from 'lucide-react'
 
 export const MAX_CREDITS = {
     free: 10000,
@@ -22,41 +21,35 @@ const UsageTrack: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    // @ts-ignore
-    const getTotalUsage = useCallback((result: AIOutput[]): number => {
-        return result.reduce((total, element) => total + (element.aiResponse?.length || 0), 0);
-    }, []);
-
-    const getData = useCallback(async () => {
-        if (!user?.primaryEmailAddress?.emailAddress) return;
+    const fetchUsage = async () => {
+        if (!user?.id) return;
 
         try {
             setIsLoading(true);
             setError(null);
-            const result = await db
-                .select()
-                .from(AIOutput)
-                .where(eq(AIOutput.createdBy, user.primaryEmailAddress.emailAddress));
-            
-            const usage = getTotalUsage(result);
-            setTotalUsage(usage);
+            const response = await axios.get('/api/get-usage');
+            setTotalUsage(response.data.totalUsage);
         } catch (err) {
             console.error('Error fetching usage data:', err);
             setError('Failed to fetch usage data. Please try again later.');
         } finally {
             setIsLoading(false);
         }
-    }, [user, getTotalUsage]);
+    };
 
     useEffect(() => {
-        if (user) {
-            getData();
-        }
-    }, [user, getData]);
+        fetchUsage();
+
+        // Set up polling
+        const intervalId = setInterval(fetchUsage, 30000); // Poll every 30 seconds
+
+        // Clean up interval on component unmount
+        return () => clearInterval(intervalId);
+    }, [user]);
 
     const usagePercentage = Math.min((totalUsage / MAX_CREDITS[subscriptionLevel]) * 100, 100);
 
-    if (isLoading) return <div>Loading...</div>;
+    if (isLoading) return <div className="flex items-center justify-center text-blue-400"><LoaderIcon className="animate-spin" /></div>;
     if (error) return <div className="text-red-500">{error}</div>;
 
     return (

@@ -9,13 +9,10 @@ import { templates } from '@/app/(data)/Templates'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowBigLeft } from 'lucide-react'
-import { chatSession } from '@/utils/Gemini'
-import { db } from '@/utils/dbSetup'
-import { AIOutput } from '@/utils/schema'
 import { useUser } from '@clerk/nextjs'
-import { MAX_CREDITS } from '../../_components/UsageTrack'
 import { TotalUsageContext } from '@/app/(context)/TotalUsageContext'
 import { useSubscription } from '@/app/(context)/SubscriptionContext'
+import axios from 'axios'
 
 interface PROPS {
     params: {
@@ -50,56 +47,50 @@ const CreateNewContent = (props:PROPS) => {
         }
     }, [searchParams])
 
+    const fetchUsage = async () => {
+        if (!user?.id) return;
+
+        try {
+            const response = await axios.get('/api/get-usage');
+            setTotalUsage(response.data.totalUsage);
+        } catch (err) {
+            console.error('Error fetching usage data:', err);
+        }
+    };
+
     const GenerateAIContent = async (newFormData: any) => {
-        if(totalUsage >= MAX_CREDITS[subscriptionLevel]) {
-            router.push("/dashboard/billing")
-            return
-        }
+        setLoading(true);
+        try {
+            const response = await axios.post('/api/generate-ai-content', {
+                formData: newFormData,
+                templateSlug: selectedTemplate?.slug,
+                subscriptionLevel,
+            });
+            
+            setAiOutput(response.data.aiOutput);
+            
+            // Update total usage
+            if (setTotalUsage) {
+                setTotalUsage(response.data.newTotalUsage);
+            }
 
-        // Check if the user has access to this template based on their subscription
-        if (!hasAccessToTemplate(selectedTemplate, subscriptionLevel)) {
-            alert("You need to upgrade your plan to access this template.")
-            router.push("/dashboard/billing")
-            return
-        }
+            // Fetch the latest usage data
+            await fetchUsage();
 
-        setLoading(true)
-        const selectedPrompt = selectedTemplate?.aiPrompt;
-        const finalAIPrompt = JSON.stringify(newFormData) + ", " + selectedPrompt;
-        const result = await chatSession.sendMessage(finalAIPrompt);
-        console.log(result.response.text())
-        setAiOutput(result.response.text())
-        await SaveInDb(newFormData, selectedTemplate?.slug, result?.response.text())
-        setLoading(false)
-    }
-
-    const SaveInDb = async (formData: any, slug: any, aiResp: string) => {
-        const result = await db.insert(AIOutput).values({
-            formData: JSON.stringify(formData), // Convert formData to string
-            templateSlug: slug,
-            aiResponse: aiResp,
-            createdBy: user?.primaryEmailAddress?.emailAddress ?? '',
-            createdAt: new Date().toISOString()
-        });
-
-        console.log(result)
-    }
-
-    // Function to check if user has access to a template based on their subscription
-    const hasAccessToTemplate = (template: TEMPLATE | undefined, level: string) => {
-        if (!template) return false;
-        const templateIndex = templates.findIndex(t => t.slug === template.slug);
-        switch (level) {
-            case 'free':
-                return templateIndex < 10;
-            case 'starter':
-                return templateIndex < 20;
-            case 'pro':
-                return templateIndex < 50;
-            case 'mastermind':
-                return true;
-            default:
-                return false;
+            // Trigger a re-fetch of the history data
+            router.refresh();
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 403) {
+                    router.push("/dashboard/billing");
+                } else {
+                    console.error('Error generating AI content:', error.response?.data || error.message);
+                }
+            } else {
+                console.error('Unexpected error:', error);
+            }
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -119,4 +110,3 @@ const CreateNewContent = (props:PROPS) => {
 }
 
 export default CreateNewContent
-

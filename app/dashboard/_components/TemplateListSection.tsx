@@ -1,9 +1,8 @@
 import { templates } from '@/app/(data)/Templates'
 import React, { useEffect, useState } from 'react'
 import TemplateCard from './TemplateCard'
-import { useSubscription } from '@/app/(context)/SubscriptionContext'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Grid2x2, List } from 'lucide-react'
 
 export interface TEMPLATE {
     name: string,
@@ -24,93 +23,76 @@ export interface FORM {
 
 const TemplateListSection = ({userSearchInput}: any) => {
     const [templateList, setTemplateList] = useState(templates);
-    const { subscriptionLevel } = useSubscription();
+    const [viewMode, setViewMode] = useState('grid');
 
-    const getTemplateCount = (level: string) => {
-        switch (level) {
-            case 'free':
-                return 10;
-            case 'starter':
-                return 20;
-            case 'pro':
-                return 50;
-            case 'mastermind':
-                return templates.length; // All templates
-            default:
-                return 10; // Default to free plan
+    useEffect(() => {
+        if(userSearchInput) {
+            const filterData = templates.filter(item =>
+                item.name.toLowerCase().includes(userSearchInput.toLowerCase())
+            );
+
+            setTemplateList(filterData)
+        } else {
+            setTemplateList(templates)
+        }
+    }, [userSearchInput])
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
         }
     }
 
-    useEffect(() => {
-        let filteredTemplates = templates;
-
-        if(userSearchInput) {
-            filteredTemplates = templates.filter(item =>
-                item.name.toLowerCase().includes(userSearchInput.toLowerCase())
-            );
-        }
-
-        // Limit the number of templates based on subscription level
-        const templateCount = getTemplateCount(subscriptionLevel);
-        filteredTemplates = filteredTemplates.slice(0, templateCount);
-
-        setTemplateList(filteredTemplates);
-    }, [userSearchInput, subscriptionLevel])
-
-    const renderUpgradeMessage = () => {
-        switch (subscriptionLevel) {
-            case 'free':
-                return (
-                    <div className="text-center my-8">
-                        <p className="mb-4">Upgrade to Starter plan to access 10 more templates!</p>
-                        <Button asChild variant="default" className="bg-blue-500 hover:bg-blue-600">
-                            <Link href="/dashboard/billing">Upgrade to Starter</Link>
-                        </Button>
-                    </div>
-                );
-            case 'starter':
-                return (
-                    <div className="text-center my-8">
-                        <p className="mb-4">Upgrade to Pro plan for 30 more templates and advanced features!</p>
-                        <Button asChild variant="default" className="bg-blue-500 hover:bg-blue-600">
-                            <Link href="/dashboard/billing">Upgrade to Pro</Link>
-                        </Button>
-                    </div>
-                );
-            case 'pro':
-                return (
-                    <div className="text-center my-8">
-                        <p className="mb-4">Upgrade to Mastermind plan for unlimited templates and premium support!</p>
-                        <Button asChild variant="default" className="bg-blue-500 hover:bg-blue-600">
-                            <Link href="/dashboard/billing">Upgrade to Mastermind</Link>
-                        </Button>
-                    </div>
-                );
-            default:
-                return null;
+    const itemVariants = {
+        hidden: { y: 20, opacity: 0 },
+        visible: {
+            y: 0,
+            opacity: 1,
+            transition: {
+                type: 'spring',
+                stiffness: 100
+            }
         }
     }
 
     return (
-        <>
-            <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
-                {templateList.map((item: TEMPLATE, index: number) => (
-                    <TemplateCard key={index} {...item} />
-                ))}
-            </section>
-            {renderUpgradeMessage()}
-            {subscriptionLevel === 'pro' && (
-                <div className="text-center my-4">
-                    <p>As a Pro user, you have access to priority email support!</p>
-                </div>
-            )}
-            {subscriptionLevel === 'mastermind' && (
-                <div className="text-center my-4">
-                    <p>Welcome, Mastermind user! You have unlimited access to all templates and features.</p>
-                    <p>Need a custom template? Contact our support team!</p>
-                </div>
-            )}
-        </>
+        <div className="p-4">
+            <div className="flex justify-end mb-4">
+                <button
+                    className={`mr-2 p-2 rounded ${viewMode === 'list' ? 'bg-gray-200' : ''}`}
+                    onClick={() => setViewMode('list')}
+                >
+                    <List size={24} />
+                </button>
+                <button
+                    className={`p-2 rounded ${viewMode === 'grid' ? 'bg-gray-200' : ''}`}
+                    onClick={() => setViewMode('grid')}
+                >
+                    <Grid2x2 size={24} />
+                </button>
+            </div>
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={viewMode}
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" : "flex flex-col space-y-4"}
+                >
+                    {templateList.map((item: TEMPLATE, index: number) => (
+                        <motion.div key={index} variants={itemVariants}>
+                            {/* @ts-ignore */}
+                            <TemplateCard {...item} viewMode={viewMode} />
+                        </motion.div>
+                    ))}
+                </motion.div>
+            </AnimatePresence>
+        </div>
     )
 }
 
