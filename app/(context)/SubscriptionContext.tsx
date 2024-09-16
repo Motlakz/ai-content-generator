@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 type SubscriptionLevel = 'free' | 'starter' | 'pro' | 'mastermind';
 
@@ -11,6 +11,18 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(u
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [subscriptionLevel, setSubscriptionLevel] = useState<SubscriptionLevel>('free');
+
+    useEffect(() => {
+        const fetchSubscription = async () => {
+            const response = await fetch('/api/subscription');
+            const data = await response.json();
+            if (data.subscriptionLevel) {
+                setSubscriptionLevel(data.subscriptionLevel);
+            }
+        };
+
+        fetchSubscription();
+    }, []);
 
     return (
         <SubscriptionContext.Provider value={{ subscriptionLevel, setSubscriptionLevel }}>

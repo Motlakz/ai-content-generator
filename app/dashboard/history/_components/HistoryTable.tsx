@@ -56,13 +56,13 @@ const HistoryTable = () => {
                     <p className="text-gray-500">Your content history for the last week. <span className="text-blue-500">Upgrade to view the rest!</span></p>
                 )}
                 {subscriptionLevel === 'starter' && (
-                    <p className="text-blue-500">Your content history for the last month.</p>
+                    <p className="text-indigo-500">Your content history for the last month.</p>
                 )}
                 {subscriptionLevel === 'pro' && (
-                    <p className="text-green-500">Your content history for the last year.</p>
+                    <p className="text-pink-500">Your content history for the last year.</p>
                 )}
                 {subscriptionLevel === 'mastermind' && (
-                    <p className="text-purple-500">View your content history.</p>
+                    <p className="text-blue-500">View your content history.</p>
                 )}
             </article>
 

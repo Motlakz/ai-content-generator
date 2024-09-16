@@ -68,15 +68,29 @@ const BillingPage = () => {
     const { subscriptionLevel, setSubscriptionLevel } = useSubscription()
     const router = useRouter()
 
-    const handleUpgrade = (level: string) => {
-        // Here you would integrate with your payment gateway
-        // For now, we'll just update the subscription level
-
-        // @ts-ignore
-        setSubscriptionLevel(level)
-        alert(`Upgraded to ${level} plan!`)
-        router.push('/dashboard')
-    }
+    const handleUpgrade = async (level: string) => {
+        try {
+            const response = await fetch('/api/subscription', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ subscriptionLevel: level }),
+            });
+    
+            if (!response.ok) {
+                throw new Error('Failed to upgrade subscription');
+            }
+            
+            //  @ts-ignore
+            setSubscriptionLevel(level);
+            alert(`Upgraded to ${level} plan!`);
+            router.push('/dashboard');
+        } catch (error) {
+            console.error('Error upgrading subscription:', error);
+            alert('Failed to upgrade subscription.');
+        }
+    };    
 
     const botVariants = {
         animate: {

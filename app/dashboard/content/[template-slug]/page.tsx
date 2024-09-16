@@ -13,6 +13,8 @@ import { useUser } from '@clerk/nextjs'
 import { TotalUsageContext } from '@/app/(context)/TotalUsageContext'
 import { useSubscription } from '@/app/(context)/SubscriptionContext'
 import axios from 'axios'
+import UpgradeAlert from '../../_components/UpgradeAlert'
+import { useToast } from '@/hooks/use-toast'
 
 interface PROPS {
     params: {
@@ -30,6 +32,8 @@ const CreateNewContent = (props:PROPS) => {
     const { totalUsage, setTotalUsage } = useContext(TotalUsageContext);
     const { subscriptionLevel } = useSubscription();
     const router = useRouter();
+    const [showUpgradeAlert, setShowUpgradeAlert] = useState(false);
+    const { toast } = useToast()
 
     useEffect(() => {
         const formDataParam = searchParams.get('formData')
@@ -69,25 +73,40 @@ const CreateNewContent = (props:PROPS) => {
             
             setAiOutput(response.data.aiOutput);
             
-            // Update total usage
             if (setTotalUsage) {
                 setTotalUsage(response.data.newTotalUsage);
             }
 
-            // Fetch the latest usage data
             await fetchUsage();
-
-            // Trigger a re-fetch of the history data
             router.refresh();
+
+            // Show success toast
+            toast({
+                title: "Content Generated",
+                description: "Your AI-generated content is ready for review.",
+                duration: 5000,
+            })
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 if (error.response?.status === 403) {
-                    router.push("/dashboard/billing");
+                    setShowUpgradeAlert(true);
                 } else {
                     console.error('Error generating AI content:', error.response?.data || error.message);
+                    toast({
+                        title: "Error",
+                        description: "Failed to generate content. Please try again.",
+                        variant: "destructive",
+                        duration: 5000,
+                    })
                 }
             } else {
                 console.error('Unexpected error:', error);
+                toast({
+                    title: "Error",
+                    description: "An unexpected error occurred. Please try again.",
+                    variant: "destructive",
+                    duration: 5000,
+                })
             }
         } finally {
             setLoading(false);
@@ -105,6 +124,10 @@ const CreateNewContent = (props:PROPS) => {
                     <OutputSection aiOutput={aiOutput} templateSlug={props.params['template-slug']} />
                 </div>
             </section>
+            <UpgradeAlert 
+                isOpen={showUpgradeAlert}
+                onClose={() => setShowUpgradeAlert(false)}
+            />
         </>
     )
 }
